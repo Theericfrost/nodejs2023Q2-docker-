@@ -1,3 +1,8 @@
+1. npm install
+2. create .env file
+3. npm run start
+4. npm run test
+
 # Home Library Service
 
 ## Prerequisites
