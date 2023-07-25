@@ -46,7 +46,7 @@ export class FavoriteService {
 
     if (!isExists) {
       throw new HttpException(
-        "Track dosn't exists in favorites",
+        "Track dosn't exists in favorites collection",
         HttpStatus.NOT_FOUND,
       );
     }
@@ -93,7 +93,7 @@ export class FavoriteService {
 
     if (!isExists) {
       throw new HttpException(
-        "Album dosn't exists in favorites",
+        "Album dosn't exists in favorites collection",
         HttpStatus.NOT_FOUND,
       );
     }
@@ -140,7 +140,7 @@ export class FavoriteService {
 
     if (!isExists) {
       throw new HttpException(
-        "Artist dosn't exists in favorites",
+        "Artist dosn't exists in favorites collection",
         HttpStatus.NOT_FOUND,
       );
     }
