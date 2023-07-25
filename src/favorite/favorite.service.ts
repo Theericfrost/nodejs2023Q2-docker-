@@ -71,7 +71,7 @@ export class FavoriteService {
 
     if (!album) {
       throw new HttpException(
-        "Track dosn't exists",
+        "Album dosn't exists",
         HttpStatus.UNPROCESSABLE_ENTITY,
       );
     }
@@ -93,7 +93,7 @@ export class FavoriteService {
 
     if (!isExists) {
       throw new HttpException(
-        "Track dosn't exists in favorites",
+        "Album dosn't exists in favorites",
         HttpStatus.NOT_FOUND,
       );
     }
@@ -118,7 +118,7 @@ export class FavoriteService {
 
     if (!artist) {
       throw new HttpException(
-        "Track dosn't exists",
+        "Artist dosn't exists",
         HttpStatus.UNPROCESSABLE_ENTITY,
       );
     }
@@ -140,7 +140,7 @@ export class FavoriteService {
 
     if (!isExists) {
       throw new HttpException(
-        "Track dosn't exists in favorites",
+        "Artist dosn't exists in favorites",
         HttpStatus.NOT_FOUND,
       );
     }
