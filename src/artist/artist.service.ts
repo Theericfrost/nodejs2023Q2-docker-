@@ -6,11 +6,11 @@ import { CreateArtist } from './dto/artist.dto';
 @Injectable()
 export class ArtistService {
   constructor(private dbService: DbService) {}
-  getArtists() {
-    return this.dbService.getDataBase().artists;
+  async getArtists() {
+    return await this.dbService.artist.findMany();
   }
 
-  getArtist(id: string) {
+  async getArtist(id: string) {
     if (!uuidValidate(id)) {
       throw new HttpException(
         'Not valid id. Need uuid',
@@ -18,9 +18,7 @@ export class ArtistService {
       );
     }
 
-    const artist = this.dbService
-      .getDataBase()
-      .artists.find((artist) => artist.id === id);
+    const artist = await this.dbService.artist.findFirst({ where: { id } });
 
     if (!artist) {
       throw new HttpException("Artist dosn't exists", HttpStatus.NOT_FOUND);
@@ -29,20 +27,22 @@ export class ArtistService {
     return artist;
   }
 
-  createArtist(body: CreateArtist) {
+  async createArtist(body: CreateArtist) {
     const newArtist = {
       ...body,
       id: uuidv4(),
     };
 
-    this.dbService.getDataBase().artists.push(newArtist);
-    return newArtist;
+    const response = await this.dbService.artist.create({
+      data: {
+        ...newArtist,
+      },
+    });
+    return response;
   }
 
-  updateArtist(id: string, body: CreateArtist) {
-    let artist = this.dbService
-      .getDataBase()
-      .artists.find((artists) => artists.id === id);
+  async updateArtist(id: string, body: CreateArtist) {
+    const artist = await this.dbService.artist.findFirst({ where: { id } });
 
     if (!uuidValidate(id)) {
       throw new HttpException(
@@ -55,12 +55,15 @@ export class ArtistService {
       throw new HttpException("Artist dosn't exists", HttpStatus.NOT_FOUND);
     }
 
-    artist = { ...artist, ...body };
+    const response = await this.dbService.artist.update({
+      where: { id },
+      data: { ...artist, ...body },
+    });
 
-    return artist;
+    return response;
   }
 
-  deleteArtist(id: string) {
+  async deleteArtist(id: string) {
     if (!uuidValidate(id)) {
       throw new HttpException(
         'Not valid id. Need uuid',
@@ -68,44 +71,39 @@ export class ArtistService {
       );
     }
 
-    const artist = this.dbService
-      .getDataBase()
-      .artists.find((artist) => artist.id === id);
+    const artist = await this.dbService.artist.findFirst({ where: { id } });
 
     if (!artist) {
       throw new HttpException("Artist dosn't exists", HttpStatus.NOT_FOUND);
     }
 
-    this.dbService.getDataBase().artists = this.dbService
-      .getDataBase()
-      .artists.filter((artist) => artist.id !== id);
-
-    const album = this.dbService
-      .getDataBase()
-      .albums.find((album) => album.artistId === id);
+    await this.dbService.artist.delete({ where: { id } });
+    const album = await this.dbService.album.findFirst({
+      where: { artistId: id },
+    });
 
     if (album) {
-      album.artistId = null;
+      await this.dbService.album.updateMany({
+        where: { artistId: id },
+        data: { artistId: null },
+      });
     }
 
-    const isFavorite = this.dbService
-      .getDataBase()
-      .favorites.artists.find((artist) => artist.id === id);
+    const isFavorite = await this.dbService.artist.findFirst({
+      where: { id, isFavorite: true },
+    });
 
     if (isFavorite) {
-      this.dbService.getDataBase().favorites.artists = this.dbService
-        .getDataBase()
-        .favorites.artists.filter((artist) => artist.id !== id);
+      await this.dbService.artist.update({
+        where: { id, isFavorite: true },
+        data: { isFavorite: false },
+      });
     }
 
-    this.dbService.getDataBase().tracks = this.dbService
-      .getDataBase()
-      .tracks.map((track) => {
-        if (track.artistId === id) {
-          track.artistId = null;
-        }
-        return track;
-      });
+    await this.dbService.track.updateMany({
+      where: { artistId: id },
+      data: { artistId: null },
+    });
 
     return;
   }

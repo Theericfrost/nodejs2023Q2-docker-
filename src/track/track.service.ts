@@ -7,11 +7,11 @@ import { CreateTrackDto } from './dto/track.dto';
 export class TrackService {
   constructor(private dbService: DbService) {}
 
-  getTracks() {
-    return this.dbService.getDataBase().tracks;
+  async getTracks() {
+    return await this.dbService.track.findMany();
   }
 
-  getTrack(id: string) {
+  async getTrack(id: string) {
     if (!uuidValidate(id)) {
       throw new HttpException(
         'Not valid id. Need uuid',
@@ -19,9 +19,7 @@ export class TrackService {
       );
     }
 
-    const track = this.dbService
-      .getDataBase()
-      .tracks.find((track) => track.id === id);
+    const track = await this.dbService.track.findFirst({ where: { id } });
 
     if (!track) {
       throw new HttpException("Track dosn't exists", HttpStatus.NOT_FOUND);
@@ -30,7 +28,7 @@ export class TrackService {
     return track;
   }
 
-  createTrack(body: CreateTrackDto) {
+  async createTrack(body: CreateTrackDto) {
     const newTrack = {
       artistId: null,
       albumId: null,
@@ -38,14 +36,14 @@ export class TrackService {
       id: uuidv4(),
     };
 
-    this.dbService.getDataBase().tracks.push(newTrack);
-    return newTrack;
+    const responce = await this.dbService.track.create({
+      data: { ...newTrack },
+    });
+    return responce;
   }
 
-  updateTrack(id: string, body: CreateTrackDto) {
-    let track = this.dbService
-      .getDataBase()
-      .tracks.find((tracks) => tracks.id === id);
+  async updateTrack(id: string, body: CreateTrackDto) {
+    const track = await this.dbService.track.findFirst({ where: { id } });
 
     if (!uuidValidate(id)) {
       throw new HttpException(
@@ -57,13 +55,15 @@ export class TrackService {
     if (!track) {
       throw new HttpException("Track dosn't exists", HttpStatus.NOT_FOUND);
     }
+    const responce = await this.dbService.track.update({
+      where: { id },
+      data: { ...track, ...body },
+    });
 
-    track = { ...track, ...body };
-
-    return track;
+    return responce;
   }
 
-  deleteTrack(id: string) {
+  async deleteTrack(id: string) {
     if (!uuidValidate(id)) {
       throw new HttpException(
         'Not valid id. Need uuid',
@@ -71,26 +71,23 @@ export class TrackService {
       );
     }
 
-    const track = this.dbService
-      .getDataBase()
-      .tracks.find((track) => track.id === id);
+    const track = await this.dbService.track.findFirst({ where: { id } });
 
     if (!track) {
       throw new HttpException("Track dosn't exists", HttpStatus.NOT_FOUND);
     }
 
-    this.dbService.getDataBase().tracks = this.dbService
-      .getDataBase()
-      .tracks.filter((track) => track.id !== id);
+    await this.dbService.track.delete({ where: { id } });
 
-    const isFavorite = this.dbService
-      .getDataBase()
-      .favorites.tracks.find((track) => track.id === id);
+    const isFavorite = await this.dbService.track.findFirst({
+      where: { id, isFavorite: true },
+    });
 
     if (isFavorite) {
-      this.dbService.getDataBase().favorites.tracks = this.dbService
-        .getDataBase()
-        .favorites.tracks.filter((track) => track.id !== id);
+      await this.dbService.track.update({
+        where: { id },
+        data: { isFavorite: false },
+      });
     }
     return;
   }

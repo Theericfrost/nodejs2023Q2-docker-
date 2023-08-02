@@ -6,11 +6,11 @@ import { CreateAlbum } from './dto/album.dto';
 @Injectable()
 export class AlbumService {
   constructor(private dbService: DbService) {}
-  getAlbums() {
-    return this.dbService.getDataBase().albums;
+  async getAlbums() {
+    return await this.dbService.album.findMany();
   }
 
-  getAlbum(id: string) {
+  async getAlbum(id: string) {
     if (!uuidValidate(id)) {
       throw new HttpException(
         'Not valid id. Need uuid',
@@ -18,9 +18,11 @@ export class AlbumService {
       );
     }
 
-    const album = this.dbService
-      .getDataBase()
-      .albums.find((album) => album.id === id);
+    const album = await this.dbService.album.findFirst({
+      where: {
+        id,
+      },
+    });
 
     if (!album) {
       throw new HttpException("Album dosn't exists", HttpStatus.NOT_FOUND);
@@ -29,21 +31,23 @@ export class AlbumService {
     return album;
   }
 
-  createAlbum(body: CreateAlbum) {
+  async createAlbum(body: CreateAlbum) {
     const newAlbum = {
       artistId: null,
       ...body,
       id: uuidv4(),
     };
 
-    this.dbService.getDataBase().albums.push(newAlbum);
-    return newAlbum;
+    const responce = await this.dbService.album.create({
+      data: {
+        ...newAlbum,
+      },
+    });
+    return responce;
   }
 
-  updateAlbum(id: string, body: CreateAlbum) {
-    let album = this.dbService
-      .getDataBase()
-      .albums.find((albums) => albums.id === id);
+  async updateAlbum(id: string, body: CreateAlbum) {
+    const album = await this.dbService.album.findFirst({ where: { id } });
 
     if (!uuidValidate(id)) {
       throw new HttpException(
@@ -56,12 +60,20 @@ export class AlbumService {
       throw new HttpException("Album dosn't exists", HttpStatus.NOT_FOUND);
     }
 
-    album = { ...album, ...body };
+    const responce = await this.dbService.album.update({
+      where: {
+        id,
+      },
+      data: {
+        ...album,
+        ...body,
+      },
+    });
 
-    return album;
+    return responce;
   }
 
-  deleteAlbum(id: string) {
+  async deleteAlbum(id: string) {
     if (!uuidValidate(id)) {
       throw new HttpException(
         'Not valid id. Need uuid',
@@ -69,36 +81,28 @@ export class AlbumService {
       );
     }
 
-    const album = this.dbService
-      .getDataBase()
-      .albums.find((album) => album.id === id);
+    const album = await this.dbService.album.findFirst({ where: { id } });
 
     if (!album) {
       throw new HttpException("Album dosn't exists", HttpStatus.NOT_FOUND);
     }
 
-    this.dbService.getDataBase().albums = this.dbService
-      .getDataBase()
-      .albums.filter((album) => album.id !== id);
-
-    const isFavorite = this.dbService
-      .getDataBase()
-      .favorites.albums.find((album) => album.id === id);
+    await this.dbService.album.delete({ where: { id } });
+    const isFavorite = await this.dbService.album.findFirst({
+      where: { id, isFavorite: true },
+    });
 
     if (isFavorite) {
-      this.dbService.getDataBase().favorites.albums = this.dbService
-        .getDataBase()
-        .favorites.albums.filter((album) => album.id !== id);
+      await this.dbService.album.update({
+        where: { id },
+        data: { isFavorite: false },
+      });
     }
 
-    this.dbService.getDataBase().tracks = this.dbService
-      .getDataBase()
-      .tracks.map((track) => {
-        if (track.albumId === id) {
-          track.albumId = null;
-        }
-        return track;
-      });
+    await this.dbService.track.updateMany({
+      where: { albumId: id },
+      data: { albumId: null },
+    });
 
     return;
   }

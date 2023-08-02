@@ -1,0 +1,52 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Artist {
+  id   String    @id @default(uuid())
+  name String
+  grammy Boolean
+  albums Album[] @relation("ArtistAlbums")
+  tracks Track[] @relation("ArtistTracks")
+  isFavorite Boolean?
+}
+
+model Album {
+  id String @id @default(uuid())
+  name String
+  year Int
+  artist Artist? @relation("ArtistAlbums", fields: [artistId], references: [id])
+  artistId String?
+
+  tracks Track[] @relation("AlbumTracks")
+  isFavorite Boolean?
+}
+
+model Track {
+  id String @id @default(uuid())
+
+  name String
+
+  artist Artist? @relation("ArtistTracks", fields: [artistId], references: [id])
+  artistId String?
+
+  album Album? @relation("AlbumTracks", fields: [albumId], references: [id])
+  albumId String?
+
+  duration Float
+  isFavorite Boolean?
+}
+
+model User {
+  id String @id @default(uuid())
+  login String
+  password String
+  version Int
+  createdAt DateTime?   @default(now())
+  updatedAt DateTime?   @updatedAt
+}

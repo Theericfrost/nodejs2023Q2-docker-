@@ -6,11 +6,43 @@ import { validate as uuidValidate } from 'uuid';
 export class FavoriteService {
   constructor(private dbService: DbService) {}
 
-  getFavorites() {
-    return this.dbService.getDataBase().favorites;
+  async getFavorites() {
+    const data = {
+      artists: await this.dbService.artist.findMany({
+        where: { isFavorite: true },
+        select: {
+          id: true,
+          name: true,
+          grammy: true,
+          isFavorite: false,
+        },
+      }),
+      albums: await this.dbService.album.findMany({
+        where: { isFavorite: true },
+        select: {
+          id: true,
+          name: true,
+          year: true,
+          artistId: true,
+          isFavorite: false,
+        },
+      }),
+      tracks: await this.dbService.track.findMany({
+        where: { isFavorite: true },
+        select: {
+          id: true,
+          name: true,
+          artistId: true,
+          albumId: true,
+          duration: true,
+          isFavorite: false,
+        },
+      }),
+    };
+    return data;
   }
 
-  addFavoriteTrack(id: string) {
+  async addFavoriteTrack(id: string) {
     if (!uuidValidate(id)) {
       throw new HttpException(
         'Not valid id. Need uuid',
@@ -18,9 +50,7 @@ export class FavoriteService {
       );
     }
 
-    const track = this.dbService
-      .getDataBase()
-      .tracks.find((track) => track.id === id);
+    const track = await this.dbService.track.findFirst({ where: { id } });
 
     if (!track) {
       throw new HttpException(
@@ -29,10 +59,13 @@ export class FavoriteService {
       );
     }
 
-    this.dbService.getDataBase().favorites.tracks.push(track);
+    await this.dbService.track.update({
+      where: { id },
+      data: { isFavorite: true },
+    });
   }
 
-  deleteFavoriteTrack(id: string) {
+  async deleteFavoriteTrack(id: string) {
     if (!uuidValidate(id)) {
       throw new HttpException(
         'Not valid id. Need uuid',
@@ -40,9 +73,7 @@ export class FavoriteService {
       );
     }
 
-    const isExists = this.dbService
-      .getDataBase()
-      .favorites.tracks.find((track) => track.id === id);
+    const isExists = await this.dbService.track.findFirst({ where: { id } });
 
     if (!isExists) {
       throw new HttpException(
@@ -51,13 +82,14 @@ export class FavoriteService {
       );
     }
 
-    this.dbService.getDataBase().favorites.tracks = this.dbService
-      .getDataBase()
-      .favorites.tracks.filter((track) => track.id !== id);
+    await this.dbService.track.update({
+      where: { id },
+      data: { isFavorite: false },
+    });
     return;
   }
 
-  addFavoriteAlbum(id: string) {
+  async addFavoriteAlbum(id: string) {
     if (!uuidValidate(id)) {
       throw new HttpException(
         'Not valid id. Need uuid',
@@ -65,9 +97,7 @@ export class FavoriteService {
       );
     }
 
-    const album = this.dbService
-      .getDataBase()
-      .albums.find((album) => album.id === id);
+    const album = await this.dbService.album.findFirst({ where: { id } });
 
     if (!album) {
       throw new HttpException(
@@ -76,10 +106,13 @@ export class FavoriteService {
       );
     }
 
-    this.dbService.getDataBase().favorites.albums.push(album);
+    await this.dbService.album.update({
+      where: { id },
+      data: { isFavorite: true },
+    });
   }
 
-  deleteFavoriteAlbum(id: string) {
+  async deleteFavoriteAlbum(id: string) {
     if (!uuidValidate(id)) {
       throw new HttpException(
         'Not valid id. Need uuid',
@@ -87,9 +120,7 @@ export class FavoriteService {
       );
     }
 
-    const isExists = this.dbService
-      .getDataBase()
-      .favorites.albums.find((album) => album.id === id);
+    const isExists = await this.dbService.album.findFirst({ where: { id } });
 
     if (!isExists) {
       throw new HttpException(
@@ -98,13 +129,14 @@ export class FavoriteService {
       );
     }
 
-    this.dbService.getDataBase().favorites.albums = this.dbService
-      .getDataBase()
-      .favorites.albums.filter((album) => album.id !== id);
+    await this.dbService.album.update({
+      where: { id },
+      data: { isFavorite: false },
+    });
     return;
   }
 
-  addFavoriteArtist(id: string) {
+  async addFavoriteArtist(id: string) {
     if (!uuidValidate(id)) {
       throw new HttpException(
         'Not valid id. Need uuid',
@@ -112,9 +144,7 @@ export class FavoriteService {
       );
     }
 
-    const artist = this.dbService
-      .getDataBase()
-      .artists.find((artist) => artist.id === id);
+    const artist = await this.dbService.artist.findFirst({ where: { id } });
 
     if (!artist) {
       throw new HttpException(
@@ -123,10 +153,13 @@ export class FavoriteService {
       );
     }
 
-    this.dbService.getDataBase().favorites.artists.push(artist);
+    await this.dbService.artist.update({
+      where: { id },
+      data: { isFavorite: true },
+    });
   }
 
-  deleteFavoriteArtist(id: string) {
+  async deleteFavoriteArtist(id: string) {
     if (!uuidValidate(id)) {
       throw new HttpException(
         'Not valid id. Need uuid',
@@ -134,9 +167,7 @@ export class FavoriteService {
       );
     }
 
-    const isExists = this.dbService
-      .getDataBase()
-      .favorites.artists.find((artist) => artist.id === id);
+    const isExists = await this.dbService.artist.findFirst({ where: { id } });
 
     if (!isExists) {
       throw new HttpException(
@@ -145,9 +176,10 @@ export class FavoriteService {
       );
     }
 
-    this.dbService.getDataBase().favorites.artists = this.dbService
-      .getDataBase()
-      .favorites.artists.filter((artist) => artist.id !== id);
+    await this.dbService.artist.update({
+      where: { id },
+      data: { isFavorite: false },
+    });
     return;
   }
 }

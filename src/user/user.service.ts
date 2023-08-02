@@ -1,11 +1,20 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { DbService } from 'src/db/db.service';
-import { UserDto, UpdatePasswordDto, CreateUserDto } from './dto/user.dto';
+import { UpdatePasswordDto } from './dto/user.dto';
 import { validate as uuidValidate, v4 as uuidv4 } from 'uuid';
 
 @Injectable()
 export class UserService {
   constructor(private dbService: DbService) {}
+
+  fieldsFilter = {
+    id: true,
+    login: true,
+    password: false,
+    version: true,
+    createdAt: true,
+    updatedAt: true,
+  };
 
   getUserWithoutPassword(user) {
     const newUser = structuredClone(user);
@@ -13,16 +22,15 @@ export class UserService {
     return newUser;
   }
 
-  getUsers() {
-    return this.dbService
-      .getDataBase()
-      .users.map((user) => this.getUserWithoutPassword(user));
+  async getUsers() {
+    return await this.dbService.user.findMany({ select: this.fieldsFilter });
   }
 
-  getUser(id: string) {
-    const user = this.dbService
-      .getDataBase()
-      .users.find((user: UserDto) => user.id === id);
+  async getUser(id: string) {
+    const user = await this.dbService.user.findFirst({
+      where: { id },
+      select: this.fieldsFilter,
+    });
 
     if (!uuidValidate(id)) {
       throw new HttpException(
@@ -37,20 +45,26 @@ export class UserService {
     return this.getUserWithoutPassword(user);
   }
 
-  createUser(body: CreateUserDto) {
+  async createUser(body) {
     const newUser = {
       ...body,
       id: uuidv4(),
       version: 1,
-      createdAt: new Date().getTime(),
-      updatedAt: new Date().getTime(),
     };
 
-    this.dbService.getDataBase().users.push(newUser);
-    return this.getUserWithoutPassword(newUser);
+    const responce = await this.dbService.user.create({
+      data: { ...newUser },
+      select: this.fieldsFilter,
+    });
+
+    return {
+      ...responce,
+      createdAt: Number(responce.createdAt),
+      updatedAt: Number(responce.updatedAt),
+    };
   }
 
-  updatePassword(id: string, body: UpdatePasswordDto) {
+  async updatePassword(id: string, body: UpdatePasswordDto) {
     if (!uuidValidate(id)) {
       throw new HttpException(
         'Not valid id. Need uuid',
@@ -58,9 +72,7 @@ export class UserService {
       );
     }
 
-    const user = this.dbService
-      .getDataBase()
-      .users.find((user) => user.id === id);
+    const user = await this.dbService.user.findFirst({ where: { id } });
 
     if (!user) {
       throw new HttpException("User dosn't exists", HttpStatus.NOT_FOUND);
@@ -70,14 +82,25 @@ export class UserService {
       throw new HttpException('Old password is wrong', HttpStatus.FORBIDDEN);
     }
 
-    user.password = body.newPassword;
-    user.version = user.version + 1;
-    user.updatedAt = new Date().getTime();
+    const responce = await this.dbService.user.update({
+      where: { id },
+      data: {
+        ...user,
+        password: body.newPassword,
+        version: user.version + 1,
+        updatedAt: new Date(),
+      },
+      select: this.fieldsFilter,
+    });
 
-    return this.getUserWithoutPassword(user);
+    return {
+      ...responce,
+      createdAt: Number(responce.createdAt),
+      updatedAt: Number(responce.updatedAt),
+    };
   }
 
-  deleteUser(id: string) {
+  async deleteUser(id: string) {
     if (!uuidValidate(id)) {
       throw new HttpException(
         'Not valid id. Need uuid',
@@ -85,17 +108,14 @@ export class UserService {
       );
     }
 
-    const user = this.dbService
-      .getDataBase()
-      .users.find((user) => user.id === id);
+    const user = await this.dbService.user.findFirst({ where: { id } });
 
     if (!user) {
       throw new HttpException("User dosn't exists", HttpStatus.NOT_FOUND);
     }
 
-    this.dbService.getDataBase().users = this.dbService
-      .getDataBase()
-      .users.filter((user) => user.id !== id);
+    await this.dbService.user.delete({ where: { id } });
+
     return;
   }
 }
