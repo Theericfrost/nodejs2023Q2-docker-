@@ -1,20 +1,9 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, OnModuleInit } from '@nestjs/common';
+import { PrismaClient } from '@prisma/client';
 
 @Injectable()
-export class DbService {
-  private db = {
-    users: [],
-    artists: [],
-    tracks: [],
-    albums: [],
-    favorites: {
-      artists: [],
-      albums: [],
-      tracks: [],
-    },
-  };
-
-  getDataBase() {
-    return this.db;
+export class DbService extends PrismaClient implements OnModuleInit {
+  async onModuleInit() {
+    await this.$connect();
   }
 }

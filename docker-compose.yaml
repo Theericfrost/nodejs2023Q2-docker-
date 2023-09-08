@@ -1,0 +1,32 @@
+version: '3'
+services:
+  nest_app:
+    build:
+      context: .
+      dockerfile: Dockerfile-nest
+    ports:
+      - '4000:4000'
+    depends_on:
+      - db
+    environment:
+      - POSTGRES_HOST=${POSTGRES_HOST}
+      - POSTGRES_PORT=${POSTGRES_PORT}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
+    volumes:
+      - ./src:/app/src
+    restart: always
+  db:
+    build:
+      context: .
+      dockerfile: Dockerfile-postgres
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - postgres-logs:/var/log/postgresql
+
+volumes:
+  postgres-data:
+  postgres-logs:
